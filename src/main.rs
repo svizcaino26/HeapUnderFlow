@@ -1,4 +1,8 @@
 use std::net::SocketAddr;
+use log::info;
+use pretty_env_logger;
+use sqlx::postgres::PgPoolOptions;
+use std::env;
 
 use axum::{
     routing::{delete, get, post},
@@ -12,6 +16,20 @@ use handlers::*;
 
 #[tokio::main]
 async fn main() {
+    pretty_env_logger::init();
+    dotenvy::dotenv().unwrap();
+
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&env::var("DATABASE_URL").unwrap())
+        .await
+        .unwrap();
+
+    let recs = sqlx::query!(r#"SELECT * FROM questions"#).fetch_all(&pool).await.unwrap();
+
+     info!("********* Question Records *********");
+     info!("{recs:?}");
+
     let app = Router::new()
         .route("/question", post(create_question))
         .route("/questions", get(read_questions))
