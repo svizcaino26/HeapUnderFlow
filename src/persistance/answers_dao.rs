@@ -16,7 +16,9 @@ pub struct AnswersDaoImpl {
 
 impl AnswersDaoImpl {
     pub fn new(db: PgPool) -> Self {
-        todo!() // return an instance of AnswersDaoImpl
+        Self {
+            db
+        }
     }
 }
 
@@ -29,7 +31,8 @@ impl AnswersDao for AnswersDaoImpl {
         //
         // If `parse_str` returns an error, map the error to a `DBError::InvalidUUID` error
         // and early return from this function.
-        let uuid = todo!();
+        let uuid = sqlx::types::Uuid::parse_str(&answer.question_uuid)
+            .map_err(|_| DBError::InvalidUUID(format!("Invalid UUID: {}", answer.question_uuid)))?;
 
         // Make a database query to insert a new answer.
         // Here is the SQL query:
@@ -42,15 +45,33 @@ impl AnswersDao for AnswersDaoImpl {
         // the error code matches `postgres_error_codes::FOREIGN_KEY_VIOLATION`.
         // If so early return the `DBError::InvalidUUID` error. Otherwise early return
         // the `DBError::Other` error.
-        let record = todo!();
+        
+        let record = sqlx::query!(
+            r#"
+                INSERT INTO answers (question_uuid, content)
+                VALUES ($1, $2)
+                RETURNING *
+            "#,
+            uuid, answer.content
+        ).fetch_one(&self.db).await.map_err(|e| match e {
+                sqlx::Error::Database(e) => {
+                    if let Some(code) = e.code() {
+                        if code.eq(postgres_error_codes::FOREIGN_KEY_VIOLATION) {
+                            return DBError::InvalidUUID(format!("Invalid UUID: {}", answer.question_uuid))
+                        }
+                    }
+                    DBError::Other(Box::new(e))
+                }
+                e => DBError::Other(Box::new(e))
+            })?;
 
-        // Populate the AnswerDetail fields using `record`.
+            
         Ok(AnswerDetail {
-            answer_uuid: todo!(),
-            question_uuid: todo!(),
-            content: todo!(),
-            created_at: todo!(),
-        })
+            answer_uuid: record.answer_uuid.to_string(),
+            question_uuid: record.question_uuid.to_string(),
+            content: record.content,
+            created_at: record.created_at.to_string()}
+        )
     }
 
     async fn delete_answer(&self, answer_uuid: String) -> Result<(), DBError> {
