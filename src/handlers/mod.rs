@@ -2,6 +2,8 @@ use crate::models::*;
 use axum::{response::IntoResponse, Json};
 use serde::Serialize;
 
+mod handlers_inner;
+
 // ---- CRUD for Questions ----
 
 pub async fn create_question(Json(question): Json<Question>) -> impl IntoResponse {
