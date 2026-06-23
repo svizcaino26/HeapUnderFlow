@@ -1,6 +1,7 @@
+extern crate pretty_env_logger;
+#[macro_use] extern crate log;
+
 use std::net::SocketAddr;
-use log::info;
-use pretty_env_logger;
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 
@@ -11,24 +12,20 @@ use axum::{
 
 mod handlers;
 mod models;
+mod persistance;
 
 use handlers::*;
 
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
-    dotenvy::dotenv().unwrap();
+    dotenvy::dotenv().ok();
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(&env::var("DATABASE_URL").unwrap())
+        .connect(&env::var("DATABASE_URL").expect("DATABASE_URL not set."))
         .await
-        .unwrap();
-
-    let recs = sqlx::query!(r#"SELECT * FROM questions"#).fetch_all(&pool).await.unwrap();
-
-     info!("********* Question Records *********");
-     info!("{recs:?}");
+        .expect("Failed to acquire postgres connection pool");
 
     let app = Router::new()
         .route("/question", post(create_question))
