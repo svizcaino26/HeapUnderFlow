@@ -25,23 +25,20 @@ impl QuestionsDaoImpl {
 #[async_trait]
 impl QuestionsDao for QuestionsDaoImpl {
     async fn create_question(&self, question: Question) -> Result<QuestionDetail, DBError> {
-        // Make a database query to insert a new question.
-        // Here is the SQL query:
-        // ```
-        // INSERT INTO questions ( title, description )
-        // VALUES ( $1, $2 )
-        // RETURNING *
-        // ```
-        // If executing the query results in an error, map that error to
-        // the`DBError::Other` error and early return from this function.
-        let record = todo!();
+        let record = sqlx::query!(
+            r#"
+                INSERT INTO questions (title, description)
+                VALUES ($1, $2)
+                RETURNING *
+            "#,
+            question.title, question.description
+        ).fetch_one(&self.db).await.map_err(|e| DBError::Other(Box::new(e)))?;
 
-        // Populate the QuestionDetail fields using `record`.
         Ok(QuestionDetail {
-            question_uuid: todo!(),
-            title: todo!(),
-            description: todo!(),
-            created_at: todo!(),
+            question_uuid: record.question_uuid.to_string(),
+            title: record.title,
+            description: record.description,
+            created_at: record.created_at.to_string()
         })
     }
 
