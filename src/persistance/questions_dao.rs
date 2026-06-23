@@ -56,17 +56,20 @@ impl QuestionsDao for QuestionsDaoImpl {
     }
 
     async fn get_questions(&self) -> Result<Vec<QuestionDetail>, DBError> {
-        // Make a database query to get all questions.
-        // Here is the SQL query:
-        // ```
-        // SELECT * FROM questions
-        // ```
-        // If executing the query results in an error, map that error
-        // to a `DBError::Other` error and early return from this function.
-        let records = todo!();
+        let records = sqlx::query!(
+            r#"
+                SELECT * FROM questions
+            "#
+        ).fetch_all(&self.db).await.map_err(|e| DBError::Other(Box::new(e)))?;
 
-        // Iterate over `records` and map each record to a `QuestionDetail` type
-        let questions = todo!();
+        let questions = records
+            .into_iter()
+            .map(|record| QuestionDetail {
+            question_uuid: record.question_uuid.to_string(),
+            title: record.title,
+            description: record.description,
+            created_at: record.created_at.to_string()
+        }).collect();
 
         Ok(questions)
     }
