@@ -33,13 +33,13 @@ pub async fn create_question(
 pub async fn read_questions(
     questions_dao: &(dyn QuestionsDao + Sync + Send),
 ) -> Result<Vec<QuestionDetail>, HandlerError> {
-    let questions = todo!(); // get questions using `questions_dao`
+    let questions = questions_dao.get_questions().await;
 
     match questions {
-        Ok(questions) => todo!(), // return questions
+        Ok(questions) => Ok(questions),
         Err(err) => {
-            // TODO: log err using error! macro
-            todo!() // return a default internal error using the HandlerError type
+            error!("Failed to get questions.\n{}", err);
+            Err(HandlerError::default_internal_error())
         }
     }
 }
@@ -48,10 +48,10 @@ pub async fn delete_question(
     question_uuid: QuestionId,
     questions_dao: &(dyn QuestionsDao + Sync + Send),
 ) -> Result<(), HandlerError> {
-    let result = todo!(); // delete question using `questions_dao`
+    let result = questions_dao.delete_question(question_uuid.question_uuid).await;
 
     if result.is_err() {
-        return todo!(); // return a default internal error using the HandlerError type
+        return Err(HandlerError::default_internal_error());
     }
 
     Ok(())
@@ -61,16 +61,16 @@ pub async fn create_answer(
     answer: Answer,
     answers_dao: &(dyn AnswersDao + Send + Sync),
 ) -> Result<AnswerDetail, HandlerError> {
-    let answer = todo!(); // create answer using `answers_dao`
+    let answer = answers_dao.create_answer(answer).await;
 
     match answer {
-        Ok(answer) => todo!(), // return answer
+        Ok(answer) => Ok(answer),
         Err(err) => {
-            // TODO: log err using error! macro
+            error!("Failed to create answer.\n{err}");
 
             match err {
-                DBError::InvalidUUID(s) => todo!(), // return a `HandlerError::BadRequest` error passing in s as the string
-                _ => todo!(), // return a default internal error using the HandlerError type
+                DBError::InvalidUUID(s) => Err(HandlerError::BadRequest(s)),
+                _ => Err(HandlerError::default_internal_error()),
             }
         }
     }
@@ -80,13 +80,13 @@ pub async fn read_answers(
     question_uuid: QuestionId,
     answers_dao: &(dyn AnswersDao + Send + Sync),
 ) -> Result<Vec<AnswerDetail>, HandlerError> {
-    let answers = todo!(); // get answers using `answers_dao`
+    let answers = answers_dao.get_answers(question_uuid.question_uuid).await;
 
     match answers {
-        Ok(answers) => todo!(), // return answers
+        Ok(answers) => Ok(answers),
         Err(e) => {
-            // TODO: log err using error! macro
-            todo!() // return a default internal error using the HandlerError type
+            error!("Failed to fetch answers.\n{}", e);
+            Err(HandlerError::default_internal_error())
         }
     }
 }
@@ -95,10 +95,10 @@ pub async fn delete_answer(
     answer_uuid: AnswerId,
     answers_dao: &(dyn AnswersDao + Send + Sync),
 ) -> Result<(), HandlerError> {
-    let result = todo!(); // delete answer using `answers_dao`
+    let result = answers_dao.delete_answer(answer_uuid.answer_uuid).await;
 
     if result.is_err() {
-        return todo!(); // return a default internal error using the HandlerError type
+        return Err(HandlerError::default_internal_error());
     }
 
     Ok(())
